@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="18.11.1.1">
+<procedure name="main">
+<interface/>
+<body>
+<l>* dev_close_window ()</l>
+<l>list_files ('', 'directories', Directories)</l>
+<l>tuple_length(Directories,N)</l>
+<l>for DirectoryIndex := 1 to N by 1</l>
+<l>    if (Directories[DirectoryIndex-1] == 'images\\')</l>
+<l>        set_current_dir (Directories[DirectoryIndex-1])</l>
+<l>    else</l>
+<l>        continue</l>
+<l>    endif</l>
+<l>    list_image_files ('', ['jpg','tif'], [], ImageFiles)</l>
+<l>    tuple_length (ImageFiles, Length)</l>
+<l>    PointsPixel:= {}</l>
+<l>    open_file ('Points.dat', 'output', FileHandle)</l>
+<l>    for Index := 1 to Length by 1</l>
+<l>        read_image (Image, ImageFiles[Index-1])</l>
+<l>        get_image_size (Image, ImageWidth, ImageHeight)</l>
+<l>*         dev_close_window ()</l>
+<l>*         dev_open_window (0, 0, ImageWidth/2, ImageHeight/2, 'black', WindowHandle)</l>
+<l>*         dev_display (Image)</l>
+<l>        decompose3 (Image, Red, Green, Blue)</l>
+<l>        trans_from_rgb (Red, Green, Blue, Hue, Saturation, Intensity, 'hsv')</l>
+<l>        threshold (Saturation, HighSaturation, 40, 140)</l>
+<l>        reduce_domain (Hue, HighSaturation, HueHighSaturation)</l>
+<l>        threshold (HueHighSaturation, Red, 220, 255)</l>
+<l>        connection (Red, ConnectedRegions)</l>
+<l>        select_shape_std (ConnectedRegions, SelectedRegions, 'max_area', 0)</l>
+<l>        closing_circle (SelectedRegions, BoatThresholded, 20)</l>
+<l>        smallest_rectangle2 (BoatThresholded, CenterRow, CenterColumn, Phi, HalfWidth, HalfHeight)</l>
+<l>        gen_rectangle2 (Rectangle, CenterRow, CenterColumn, Phi, HalfWidth*1.2, HalfHeight*1.2)</l>
+<l>        reduce_domain (Green, Rectangle, ImageBoat)</l>
+<l>        min_max_gray (Rectangle, ImageBoat, 0, Min, Max, Range)</l>
+<l>        equ_histo_image (ImageBoat, ImageEquHisto)</l>
+<l>        threshold (ImageEquHisto, Region, 0, 110)</l>
+<l>        connection (Region, ConnectedRegions)</l>
+<l>        select_shape_std (ConnectedRegions, SelectedRegions, 'max_area', 70)</l>
+<c>        </c>
+<l>        closing_circle (SelectedRegions, RegionClosing, 3.5)</l>
+<l>*         threshold (ImageScaled, Region, 128, 255)</l>
+<l>        boundary (RegionClosing, RegionBorder, 'inner')</l>
+<l>        area_center (RegionBorder, Area, RowCenter, ColumnCenter)</l>
+<l>        smallest_rectangle2 (RegionBorder, CenterRowBoundary, CenterColumnBoundary, PhiBoundary, HalfWidthBoundary, HalfHeightBoundary)</l>
+<l>        gen_rectangle2_contour_xld (Rectangle1, CenterRowBoundary, CenterColumnBoundary, PhiBoundary, HalfWidthBoundary, HalfHeightBoundary)</l>
+<l>        PointsPixel.at(Index-1):=[CenterRowBoundary, CenterColumnBoundary, PhiBoundary]</l>
+<l>*         dev_set_color ('red')</l>
+<l>*         dev_display (BoatThresholded)</l>
+<l>*         dev_set_color ('green')</l>
+<l>*         dev_display (BoatEdge)</l>
+<l>*         stop()</l>
+<l>    endfor</l>
+<l>*     stop ()</l>
+<c>    * transfer the coordinates(center and unit:px--&gt;mm)</c>
+<l>    Ratio:=20/(HalfHeight*2)</l>
+<l>    for Index := 1 to Length by 1</l>
+<l>        PointPixel:=PointsPixel.at(Index-1)</l>
+<l>        XPosPixel:=PointPixel[1]</l>
+<l>        YPosPixel:=ImageHeight-PointPixel[0]</l>
+<l>        XPos:=XPosPixel*Ratio</l>
+<l>        YPos:=YPosPixel*Ratio</l>
+<l>        Orientation:=PointPixel[2]</l>
+<l>        fwrite_string (FileHandle, XPos+' '+YPos+' '+Orientation+'\n')</l>
+<l>    endfor</l>
+<l>    close_file (FileHandle)</l>
+<l>*     stop()</l>
+<l>    set_current_dir ('../')</l>
+<l>endfor</l>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+</hdevelop>
